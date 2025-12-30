@@ -1,0 +1,129 @@
+template:
+  - sensor:
+      - name: "Battery power net"
+        unique_id: battery_power_net
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set discharge = states('sensor.battery_consumption_power') | float(0) %}
+          {% set charge = states('sensor.battery_injection_power') | float(0) %}
+          {{ (charge - discharge) | round(0) }}
+
+      - name: "Battery charging power"
+        unique_id: battery_charging_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set discharge = states('sensor.battery_consumption_power') | float(0) %}
+          {% set charge = states('sensor.battery_injection_power') | float(0) %}
+          {{ (charge if charge > 0 else 0) | round(0) }}
+
+      - name: "Battery discharging power"
+        unique_id: battery_discharging_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set discharge = states('sensor.battery_consumption_power') | float(0) %}
+          {{ (discharge if discharge > 0 else 0) | round(0) }}
+
+  - sensor:
+      - name: "Battery power total"
+        unique_id: battery_power_total
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set discharge = states('sensor.battery_consumption_power') | float(0) %}
+          {% set charge = states('sensor.battery_injection_power') | float(0) %}
+          {{ (charge + discharge) | round(0) }}
+          
+  - sensor:
+      # Netto mot elnätet: + = export, - = import
+      - name: "Grid net power"
+        unique_id: grid_net_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set imp = states('sensor.grid_consumption_power')|float(0) %}
+          {% set exp = states('sensor.grid_injection_power')|float(0) %}
+          {{ (exp - imp) | round(0) }}
+
+      # Sol som förbrukas lokalt (approx): produktion - export
+      - name: "PV self-consumed power"
+        unique_id: pv_self_consumed_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set pv = states('sensor.panel_production_power')|float(0) %}
+          {% set exp = states('sensor.grid_injection_power')|float(0) %}
+          {{ max(0, pv - exp) | round(0) }}
+
+      # Hur stor del av husets last som täcks av sol just nu (0-100%)
+      - name: "PV cover now"
+        unique_id: pv_cover_now
+        unit_of_measurement: "%"
+        state: >
+          {% set load = states('sensor.house_load_power')|float(0) %}
+          {% set pv = states('sensor.panel_production_power')|float(0) %}
+          {% if load > 0 %}
+            {{ (min(1, pv/load) * 100) | round(0) }}
+          {% else %}
+            0
+          {% endif %}
+
+      # Självförsörjning just nu: 100% om du inte importerar
+      - name: "Self-sufficiency now"
+        unique_id: self_sufficiency_now
+        unit_of_measurement: "%"
+        state: >
+          {% set load = states('sensor.house_load_power')|float(0) %}
+          {% set imp = states('sensor.grid_consumption_power')|float(0) %}
+          {% if load > 0 %}
+            {{ ((1 - min(1, imp/load)) * 100) | round(0) }}
+          {% else %}
+            0
+          {% endif %}
+          
+  - sensor:
+      - name: "Energy mode"
+        unique_id: energy_mode
+        state: >
+          {% set pv = states('sensor.panel_production_power')|float(0) %}
+          {% set imp = states('sensor.grid_consumption_power')|float(0) %}
+          {% set exp = states('sensor.grid_injection_power')|float(0) %}
+          {% if exp > 50 %}
+            🌞📤 Exportläge
+          {% elif pv > imp %}
+            🌤️👍 Sol driver huset
+          {% elif imp > 50 %}
+            🌙📥 Importläge
+          {% else %}
+            😴 Lugn stund
+          {% endif %}
+sensor:
+  - platform: integration
+    source: sensor.house_load_power
+    name: House load energy
+    unit_prefix: k
+    round: 2
+  - platform: integration
+    source: sensor.grid_consumption_power
+    name: Grid import energy
+    unit_prefix: k
+    round: 2
+  - platform: integration
+    source: sensor.grid_injection_power
+    name: Grid export energy
+    unit_prefix: k
+    round: 2
+  - platform: integration
+    source: sensor.panel_production_power
+    name: PV energy
+    unit_prefix: k
+    round: 2
+
