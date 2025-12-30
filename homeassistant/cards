@@ -1,0 +1,96 @@
+type: entities
+title: Energy Live
+entities:
+  - entity: sensor.energy_mode
+  - entity: sensor.panel_production_power
+  - entity: sensor.house_load_power
+  - entity: sensor.grid_consumption_power
+  - entity: sensor.grid_injection_power
+  - entity: sensor.grid_net_power
+  - entity: sensor.pv_self_consumed_power
+  - entity: sensor.pv_cover_now
+  - entity: sensor.self_sufficiency_now
+###############################################
+type: entities
+entities:
+  - entity: sensor.house_load_power
+    secondary_info: last-updated
+  - entity: sensor.grid_consumption_power
+    secondary_info: last-updated
+  - entity: sensor.grid_injection_power
+  - entity: sensor.panel_production_power
+title: House
+###############################################
+type: entities
+title: Battery
+entities:
+  - entity: sensor.battery_percentage
+  - entity: sensor.battery_power
+  - entity: sensor.battery_power_net
+  - entity: sensor.battery_charging_power
+  - entity: sensor.battery_discharging_power
+  - entity: sensor.battery_power_total
+  - entity: sensor.battery_consumption_today
+  - entity: sensor.battery_injection_today
+  - entity: sensor.battery_capacity
+  ###########################################
+  type: vertical-stack
+cards:
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: gauge
+        name: PV-täckning nu
+        entity: sensor.pv_cover_now
+        min: 0
+        max: 100
+        severity:
+          green: 60
+          yellow: 35
+          red: 0
+      - type: gauge
+        name: Självförsörjning nu
+        entity: sensor.self_sufficiency_now
+        min: 0
+        max: 100
+        severity:
+          green: 60
+          yellow: 40
+          red: 0
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Effekt (W) – 24h
+      show_states: true
+    graph_span: 24h
+    now:
+      show: true
+    all_series_config:
+      stroke_width: 1
+    series:
+      - entity: sensor.panel_production_power
+        name: PV
+        type: area
+      - entity: sensor.house_load_power
+        name: Last
+        type: line
+      - entity: sensor.grid_consumption_power
+        name: Import
+        type: line
+      - entity: sensor.grid_injection_power
+        name: Export
+        type: line
+      - entity: sensor.grid_net_power
+        name: Nät netto
+        type: line
+  - type: entities
+    title: Detaljer
+    entities:
+      - entity: sensor.energy_mode
+      - entity: sensor.pv_self_consumed_power
+      - entity: sensor.grid_net_power
+      - entity: sensor.panel_production_power
+      - entity: sensor.house_load_power
+      - entity: sensor.grid_consumption_power
+      - entity: sensor.grid_injection_power
